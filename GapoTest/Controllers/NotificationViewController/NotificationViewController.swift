@@ -104,20 +104,33 @@ class NotificationViewController: UIViewController {
     }
     
     func setupBinding() {
-        
-        self.notiViewModel.listNotiResponse.observe(on: MainScheduler.instance).subscribe(onNext: { [weak self] (listNoti) in
+        self.notiViewModel.listNotiResponse.subscribe { [weak self] (listNoti) in
             guard let strongSelf = self else {
                 return
             }
             strongSelf.listNoti =  listNoti
             strongSelf.tbvListNoti.reloadData()
-            
-        }).disposed(by: self.disposeBag)
+        } onError: { error in
+            print(error)
+        } onCompleted: {
+            //
+        } onDisposed: {
+            //
+        }.disposed(by: self.disposeBag)
+        
+//        self.notiViewModel.listNotiResponse.observe(on: MainScheduler.instance).subscribe(onNext: { [weak self] (listNoti) in
+//            guard let strongSelf = self else {
+//                return
+//            }
+//            strongSelf.listNoti =  listNoti
+//            strongSelf.tbvListNoti.reloadData()
+//
+//        }).disposed(by: self.disposeBag)
         
     }
     
     @IBAction func actionTextSearchEditingChanged(_ sender: Any) {
-        if let textSearch = self.tfSearch.text{
+        if let textSearch = self.tfSearch.text {
             self.notiViewModel.handleSearch(textSearch: textSearch)
         }
     }

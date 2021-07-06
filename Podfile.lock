@@ -1,36 +1,78 @@
 PODS:
-  - RxCocoa (6.2.0):
-    - RxRelay (= 6.2.0)
-    - RxSwift (= 6.2.0)
-  - RxRelay (6.2.0):
-    - RxSwift (= 6.2.0)
-  - RxSwift (6.2.0)
+  - Action (4.2.0):
+    - RxCocoa (< 7.0, >= 5.0)
+    - RxSwift (< 7.0, >= 5.0)
+  - Alamofire (5.4.3)
+  - AlamofireImage (4.2.0):
+    - Alamofire (~> 5.4)
+  - DTMvvm (1.6.8):
+    - Action
+    - Alamofire
+    - AlamofireImage
+    - Moya
+    - ObjectMapper
+    - PureLayout
+    - RxCocoa
+    - RxSwift
+  - Moya (14.0.0):
+    - Moya/Core (= 14.0.0)
+  - Moya/Core (14.0.0):
+    - Alamofire (~> 5.0)
+  - ObjectMapper (4.2.0)
+  - PureLayout (3.1.8)
+  - RxCocoa (5.1.1):
+    - RxRelay (~> 5)
+    - RxSwift (~> 5)
+  - RxRelay (5.1.1):
+    - RxSwift (~> 5)
+  - RxSwift (5.1.1)
   - SDWebImage (5.11.1):
     - SDWebImage/Core (= 5.11.1)
   - SDWebImage/Core (5.11.1)
   - SwiftyJSON (4.3.0)
 
 DEPENDENCIES:
-  - RxCocoa (= 6.2.0)
-  - RxSwift (= 6.2.0)
+  - DTMvvm (from `https://github.com/toandk/DTMvvm.git`)
   - SDWebImage (~> 5.0)
   - SwiftyJSON (~> 4.0)
 
 SPEC REPOS:
   trunk:
+    - Action
+    - Alamofire
+    - AlamofireImage
+    - Moya
+    - ObjectMapper
+    - PureLayout
     - RxCocoa
     - RxRelay
     - RxSwift
     - SDWebImage
     - SwiftyJSON
 
+EXTERNAL SOURCES:
+  DTMvvm:
+    :git: https://github.com/toandk/DTMvvm.git
+
+CHECKOUT OPTIONS:
+  DTMvvm:
+    :commit: 7f90647a74ba2e944bcd2b76b38c184ed48fb1bb
+    :git: https://github.com/toandk/DTMvvm.git
+
 SPEC CHECKSUMS:
-  RxCocoa: 4baf94bb35f2c0ab31bc0cb9f1900155f646ba42
-  RxRelay: e72dbfd157807478401ef1982e1c61c945c94b2f
-  RxSwift: d356ab7bee873611322f134c5f9ef379fa183d8f
+  Action: 5dc2194f7a0b77857c82a677b0da655f197c005f
+  Alamofire: e447a2774a40c996748296fa2c55112fdbbc42f9
+  AlamofireImage: 34a2d90b0e5fe6a5605f85ae4b7b01e784c60192
+  DTMvvm: 6f69b747cf40e1e959dfc3070af88b305bb2b88d
+  Moya: 5b45dacb75adb009f97fde91c204c1e565d31916
+  ObjectMapper: 1eb41f610210777375fa806bf161dc39fb832b81
+  PureLayout: a4afb3d79dd958564ce33d22c89f407280d8e6a8
+  RxCocoa: 32065309a38d29b5b0db858819b5bf9ef038b601
+  RxRelay: d77f7d771495f43c556cbc43eebd1bb54d01e8e9
+  RxSwift: 81470a2074fa8780320ea5fe4102807cb7118178
   SDWebImage: a7f831e1a65eb5e285e3fb046a23fcfbf08e696d
   SwiftyJSON: 6faa0040f8b59dead0ee07436cbf76b73c08fd08
 
-PODFILE CHECKSUM: 53ed0a6e5680e44038031b99f72102c56ca85fca
+PODFILE CHECKSUM: 3be55e82f3cff4b67570a6a919b3ac9baaf00b2d
 
-COCOAPODS: 1.10.0
+COCOAPODS: 1.10.1

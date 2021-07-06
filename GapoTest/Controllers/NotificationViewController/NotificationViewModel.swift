@@ -38,6 +38,10 @@ class NotificationViewModel: BaseViewModel {
     }
     
     func handleSearch(textSearch: String) {
+        if textSearch.count <= 0 {
+            self.listNotiResponse.onNext(self.listNoti)
+            return
+        }
         let newNotis = self.listNoti.filter { (noti) -> Bool in
             noti.message.text.capitalized.contains(textSearch.capitalized)
         }
