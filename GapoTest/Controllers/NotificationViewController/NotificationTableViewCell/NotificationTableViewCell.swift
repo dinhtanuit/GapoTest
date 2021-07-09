@@ -6,12 +6,15 @@
 //
 
 import UIKit
+import DTMvvm
+import RxCocoa
+import RxSwift
 
 protocol NotificationTableViewCellDelegate: NSObject {
     func touchUpInButtonMore()
 }
 
-class NotificationTableViewCell: UITableViewCell {
+class NotificationTableViewCell: TableCell<NotificationTableViewCellViewModel> {
     
     @IBOutlet weak var viewContent: UIView!
     @IBOutlet weak var viewAvatar: UIView!
@@ -31,34 +34,64 @@ class NotificationTableViewCell: UITableViewCell {
         // Initialization code
     }
     
-    override func setSelected(_ selected: Bool, animated: Bool) {
-        super.setSelected(selected, animated: animated)
-        // Configure the view for the selected state
-    }
-    
-    func setupData(noti: NotificationResponse) {
-        self.imageAvatar.setImageWithURL(noti.imageThumb)
-        self.imageIcon.setImageWithURL(noti.icon)
-        self.lblMessage.attributedText = self.getAttributedString(message: noti.message)
-        self.lblDate.text = String.getDate(withTime: noti.createdAt)
-        if noti.status == .read {
-            self.viewContent.backgroundColor = .green
-        } else {
-            self.viewContent.backgroundColor = .white
+    override func bindViewAndViewModel() {
+        guard let viewModel = viewModel else { return }
+        if self.viewContent == nil {
+            return
         }
-    }
-    
-    func getAttributedString(message: Message) -> NSMutableAttributedString {
-        let messageText = NSMutableAttributedString.init(string: message.text)
+        viewModel.rxDate ~> self.lblDate.rx.text => disposeBag
+        viewModel.rxImageIcon ~> self.imageIcon.rx.networkImage => disposeBag
+        viewModel.rxImageAvatar ~> self.imageAvatar.rx.networkImage => disposeBag
+        viewModel.rxMessage ~> self.lblMessage.rx.attributedText => disposeBag
         
-        // set the custom font for range in string
-        if message.highlights.count > 0 {
-            messageText.setAttributes([NSAttributedString.Key.font: UIFont.getSFProTextBold(size: 14)],range: NSMakeRange(message.highlights[0].offset, message.highlights[0].length))
-        }
-        return messageText
+        viewModel.rxReaded.observeOn(MainScheduler.instance).subscribe(onNext: { [weak self] status in
+            if status ?? false {
+                self?.viewContent.backgroundColor = .green
+            } else {
+                self?.viewContent.backgroundColor = .white
+            }
+        }) => disposeBag
+        
     }
     
     @IBAction func actionTapMoreButton(_ sender: Any) {
         self.delegateCell?.touchUpInButtonMore()
+    }
+}
+
+class NotificationTableViewCellViewModel: CellViewModel<NotificationModel> {
+    
+    let rxImageAvatar = BehaviorRelay<NetworkImage>(value: NetworkImage())
+    let rxImageIcon = BehaviorRelay<NetworkImage>(value: NetworkImage())
+    let rxMessage = BehaviorRelay<NSAttributedString?>(value: nil)
+    let rxDate = BehaviorRelay<String?>(value: nil)
+    let rxReaded = BehaviorRelay<Bool?>(value: nil)
+    
+    override func react() {
+        rxImageAvatar.accept(NetworkImage(withURL: URL.init(string: model?.image ?? ""), placeholder: UIImage.from(color: .black), completion: nil))
+        rxImageIcon.accept(NetworkImage.init(withURL: URL.init(string: model?.icon ?? ""), placeholder:  UIImage.from(color: .black), completion: nil))
+        rxMessage.accept(self.getAttributedString(message: model?.message))
+        rxDate.accept(String.getDate(withTime: model?.createdAt ?? 0))
+        rxReaded.accept(model?.status == .read)
+        
+        rxReaded.observeOn(MainScheduler.instance).subscribe(onNext: { [weak self] status in
+            if status ?? false {
+                self?.model?.status = .read
+            } else {
+                self?.model?.status = .unRead
+            }
+        }) => disposeBag
+    }
+    
+    func getAttributedString(message: MessageModel?) -> NSMutableAttributedString? {
+        guard let message = message else { return nil }
+        
+        let messageText = NSMutableAttributedString.init(string: message.text)
+        // set the custom font for range in string
+        if message.highlights.count > 0 {
+            messageText.setAttributes([NSAttributedString.Key.font: UIFont.getSFProTextBold(size: 14)],range: NSMakeRange(message.highlights[0].offset, message.highlights[0].length))
+        }
+        
+        return messageText
     }
 }
