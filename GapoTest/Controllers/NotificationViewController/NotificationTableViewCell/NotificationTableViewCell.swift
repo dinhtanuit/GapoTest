@@ -10,10 +10,6 @@ import DTMvvm
 import RxCocoa
 import RxSwift
 
-protocol NotificationTableViewCellDelegate: NSObject {
-    func touchUpInButtonMore()
-}
-
 class NotificationTableViewCell: TableCell<NotificationTableViewCellViewModel> {
     
     @IBOutlet weak var viewContent: UIView!
@@ -23,7 +19,6 @@ class NotificationTableViewCell: TableCell<NotificationTableViewCellViewModel> {
     @IBOutlet weak var btnMore: UIButton!
     @IBOutlet weak var imageAvatar: UIImageView!
     @IBOutlet weak var imageIcon: UIImageView!
-    weak var delegateCell: NotificationTableViewCellDelegate?
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -35,7 +30,9 @@ class NotificationTableViewCell: TableCell<NotificationTableViewCellViewModel> {
     }
     
     override func bindViewAndViewModel() {
+        
         guard let viewModel = viewModel else { return }
+        
         if self.viewContent == nil {
             return
         }
@@ -43,19 +40,12 @@ class NotificationTableViewCell: TableCell<NotificationTableViewCellViewModel> {
         viewModel.rxImageIcon ~> self.imageIcon.rx.networkImage => disposeBag
         viewModel.rxImageAvatar ~> self.imageAvatar.rx.networkImage => disposeBag
         viewModel.rxMessage ~> self.lblMessage.rx.attributedText => disposeBag
-        
-        viewModel.rxReaded.observeOn(MainScheduler.instance).subscribe(onNext: { [weak self] status in
-            if status ?? false {
-                self?.viewContent.backgroundColor = .green
-            } else {
-                self?.viewContent.backgroundColor = .white
-            }
-        }) => disposeBag
+        viewModel.rxBackground ~> self.viewContent.rx.backgroundColor => disposeBag
         
     }
     
     @IBAction func actionTapMoreButton(_ sender: Any) {
-        self.delegateCell?.touchUpInButtonMore()
+        viewModel?.handleClickMoreButton()
     }
 }
 
@@ -66,6 +56,8 @@ class NotificationTableViewCellViewModel: CellViewModel<NotificationModel> {
     let rxMessage = BehaviorRelay<NSAttributedString?>(value: nil)
     let rxDate = BehaviorRelay<String?>(value: nil)
     let rxReaded = BehaviorRelay<Bool?>(value: nil)
+    let rxBackground = BehaviorRelay<UIColor?>(value: nil)
+    let rxHandleClickMore = BehaviorRelay<Bool?>(value: nil)
     
     override func react() {
         rxImageAvatar.accept(NetworkImage(withURL: URL.init(string: model?.image ?? ""), placeholder: UIImage.from(color: .black), completion: nil))
@@ -77,10 +69,16 @@ class NotificationTableViewCellViewModel: CellViewModel<NotificationModel> {
         rxReaded.observeOn(MainScheduler.instance).subscribe(onNext: { [weak self] status in
             if status ?? false {
                 self?.model?.status = .read
+                self?.rxBackground.accept(.green)
             } else {
                 self?.model?.status = .unRead
+                self?.rxBackground.accept(.white)
             }
         }) => disposeBag
+    }
+    
+    func handleClickMoreButton() {
+        print("CLick -- \(String(describing: indexPath?.row))")
     }
     
     func getAttributedString(message: MessageModel?) -> NSMutableAttributedString? {

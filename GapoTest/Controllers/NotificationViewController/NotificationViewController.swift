@@ -15,6 +15,7 @@ import Alamofire
 class NotificationViewController: ListPage<NotificationViewModel> {
 //    let notiViewModel = NotificationViewModel()
 
+    @IBOutlet weak var emptyView: UIView!
     @IBOutlet weak var viewHeaderSearch: UIView!
     @IBOutlet weak var lblTitle: UILabel!
     @IBOutlet weak var btnSearch: UIButton!
@@ -25,9 +26,12 @@ class NotificationViewController: ListPage<NotificationViewModel> {
     @IBOutlet weak var tfSearch: UITextField!
     @IBOutlet weak var btnClearSearch: UIButton!
     
+    lazy var refreshControl: UIRefreshControl = {
+        let refreshControl = UIRefreshControl()
+        refreshControl.addTarget(self, action: #selector(handlePullToRefresh), for: .valueChanged)
+        return refreshControl
+    }()
     
-//    let viewSearchBar = SearchBarView.instantiate()
-//    let disposeBag = DisposeBag()
     var listNoti: [NotificationResponse] = [NotificationResponse]()
     let notiIdentifier = "NotificationTableViewCell"
     
@@ -50,7 +54,15 @@ class NotificationViewController: ListPage<NotificationViewModel> {
         
         self.initializeContent()
         tableView.estimatedRowHeight = 100
-        tableView.register(UINib.init(nibName:"NotificationTableViewCell", bundle: nil), forCellReuseIdentifier: "NotificationTableViewCell")
+        tableView.register(UINib.init(nibName:NotificationTableViewCell.identifier, bundle: nil), forCellReuseIdentifier: NotificationTableViewCell.identifier)
+        if #available(iOS 10.0, *) {
+            self.tableView.refreshControl = refreshControl
+        } else {
+            self.tableView.addSubview(refreshControl)
+        }
+       
+        self.emptyView.isHidden = true
+        self.view.bringSubviewToFront(self.emptyView)
     }
     
     override func bindViewAndViewModel() {
@@ -63,6 +75,28 @@ class NotificationViewController: ListPage<NotificationViewModel> {
         viewModel.rxSearchText <~> self.tfSearch.rx.text => disposeBag
         viewModel.rxHideSearch ~> self.viewSearch.rx.isHidden => disposeBag
         
+        viewModel.rxIsShowEmptyView.subscribe(onNext: { [weak self]  isShowEmptyView in
+            self?.emptyView.isHidden = !isShowEmptyView
+        }) => disposeBag
+        
+        self.tableView.rx.endReach(30).subscribe(onNext: {
+            viewModel.loadMoreItems()
+        }) => disposeBag
+        
+        viewModel.rxEndRefreshControl.skip(1).subscribe(onNext: { [weak self] isEnded in
+            guard let self = self, isEnded else { return }
+            self.stopRefreshControl()
+        }) => disposeBag
+    }
+    
+    func stopRefreshControl() {
+        DispatchQueue.main.async {
+            self.refreshControl.endRefreshing()
+        }
+    }
+    
+    @objc func handlePullToRefresh() {
+        viewModel?.reload()
     }
     
     override func cellIdentifier(_ cellViewModel: NotificationTableViewCellViewModel) -> String {
@@ -101,7 +135,7 @@ class NotificationViewController: ListPage<NotificationViewModel> {
             strongSelf.viewModel?.rxHideSearch.accept(false)
             strongSelf.tfSearch.becomeFirstResponder()
 
-        }).disposed(by: self.disposeBag ?? DisposeBag.init())
+        }) => disposeBag
 
         self.btnClearSearch.rx.tap.asDriver().throttle(RxTimeInterval.milliseconds(0)).drive(onNext: {
             [weak self] in
@@ -111,7 +145,7 @@ class NotificationViewController: ListPage<NotificationViewModel> {
             }
             strongSelf.tfSearch.text = ""
 
-        }).disposed(by: self.disposeBag ?? DisposeBag.init())
+        }) => disposeBag
 
         self.btnCancelSearch.rx.tap.asDriver().throttle(RxTimeInterval.milliseconds(0)).drive(onNext: {
             [weak self] in
@@ -123,34 +157,11 @@ class NotificationViewController: ListPage<NotificationViewModel> {
             strongSelf.tfSearch.text = ""
             strongSelf.tfSearch.endEditing(true)
 
-        }).disposed(by: self.disposeBag ?? DisposeBag.init())
+        }) => disposeBag
 
     }
     
     func setupBinding() {
-//        self.notiViewModel.listNotiResponse.subscribe { [weak self] (listNoti) in
-//            guard let strongSelf = self else {
-//                return
-//            }
-//            strongSelf.listNoti =  listNoti
-//            strongSelf.tbvListNoti.reloadData()
-//        } onError: { error in
-//            print(error)
-//        } onCompleted: {
-//            //
-//        } onDisposed: {
-//            //
-//        }.disposed(by: self.disposeBag)
-        
-//        self.notiViewModel.listNotiResponse.observe(on: MainScheduler.instance).subscribe(onNext: { [weak self] (listNoti) in
-//            guard let strongSelf = self else {
-//                return
-//            }
-//            strongSelf.listNoti =  listNoti
-//            strongSelf.tbvListNoti.reloadData()
-//
-//        }).disposed(by: self.disposeBag)
-        
     }
     
     @IBAction func actionTextSearchEditingChanged(_ sender: Any) {
@@ -160,43 +171,3 @@ class NotificationViewController: ListPage<NotificationViewModel> {
     }
 }
 
-//// MARK: ---UITableViewDelegate
-//extension NotificationViewController: UITableViewDelegate {
-//
-//    func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
-//        return UITableView.automaticDimension
-//    }
-//
-//    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-//        //
-//        if indexPath.row < self.listNoti.count {
-//            self.notiViewModel.handleReadNoti(noti: &self.listNoti[indexPath.row])
-//            self.tbvListNoti.reloadRows(at: [indexPath], with: .none)
-//        }
-//    }
-//}
-//
-//// MARK: ---UITableViewDataSource
-//extension NotificationViewController: UITableViewDataSource {
-//
-//    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-//        return self.listNoti.count
-//    }
-//
-//    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-//        let cell = tableView.dequeueReusableCell(withIdentifier: self.notiIdentifier, for: indexPath) as! NotificationTableViewCell
-//        if self.listNoti.count > indexPath.row {
-//            cell.setupData(noti: self.listNoti[indexPath.row])
-//            cell.delegateCell = self
-//        }
-//        return cell
-//    }
-//}
-
-
-// MARK: ---NotificationTableViewCellDelegate
-extension NotificationViewController: NotificationTableViewCellDelegate {
-    func touchUpInButtonMore() {
-        //
-    }
-}

@@ -7,6 +7,10 @@ target 'GapoTest' do
 pod 'SwiftyJSON', '~> 4.0'
 pod 'DTMvvm', :git => 'https://github.com/toandk/DTMvvm.git'
 pod 'SDWebImage', '~> 5.0'
+pod 'RxCocoa-Texture', :git => 'https://github.com/toandk/RxCocoa-Texture'
+pod 'RxASDataSources', :git => 'https://github.com/toandk/RxASDataSources'
+pod 'ASMvvm', :git => 'https://github.com/toandk/ASMvvm.git'
+
 
 
   target 'GapoTestTests' do

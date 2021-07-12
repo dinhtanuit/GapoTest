@@ -11,7 +11,7 @@ import SwiftyJSON
 import DTMvvm
 import RxCocoa
 
-class NotificationViewModel: ListViewModel<NotificationModel, NotificationTableViewCellViewModel> {
+class NotificationViewModel: GPBaseListViewModel<NotificationModel, NotificationTableViewCellViewModel> {
     
     let rxPageTitle = BehaviorRelay<String?>(value: nil)
     // Alert service injection
@@ -21,16 +21,19 @@ class NotificationViewModel: ListViewModel<NotificationModel, NotificationTableV
     let rxSearchText = BehaviorRelay<String?>(value: nil)
     let rxIsSearching = BehaviorRelay<Bool>(value: false)
     let rxHideSearch = BehaviorRelay<Bool>(value: true)
+    var rxEndRefreshControl = BehaviorRelay<Bool>(value: false)
+    var rxIsShowEmptyView = BehaviorRelay<Bool>(value: false)
+    
     
     var tmpBag: DisposeBag?
     var finishedSearching = false
     var listNotiSearch = [NotificationModel]()
     var resultNotiSearch = [NotificationModel]()
-
+    
     override func react() {
-        self.getListNotification()
+        self.getListItems()
         rxPageTitle.accept("Thông báo")
-
+        
         rxSearchText
             .do(onNext: { text in
                 self.tmpBag = nil // stop current load more if any
@@ -61,21 +64,47 @@ class NotificationViewModel: ListViewModel<NotificationModel, NotificationTableV
         cellViewModel.rxReaded.accept(true)
     }
     
-    private func getListNotification() {
-        
+    override func getListItems() {
         self.flickrService.getListNotification()
             .map(prepareSources(_:))
             .subscribe { [weak self] cellViewModel in
-                self?.itemsSource.reset([cellViewModel])
-            } onError: { [weak self] error in
+                self?.rxIsShowEmptyView.accept(cellViewModel.isEmpty)
+                self?.handleGetListItems(cellViewModel, nextLink: "")
+                self?.endRefreshControl()
+            } onError: { error in
                 //
             } => self.disposeBag
-
+    }
+    
+    
+    override func loadMoreItems() {
+        if itemsSource.count <= 0 {
+            return
+        }
+        //        super.loadMoreItems()
+        self.flickrService.getListNotification()
+            .map(prepareSources(_:))
+            .subscribe { [weak self] cellViewModel in
+                self?.handleGetListItems(cellViewModel, nextLink: "NextLink")
+            } onError: { error in
+                //
+            } => self.disposeBag
+    }
+    
+    override func reload() {
+        rxEndRefreshControl.accept(false)
+        super.reload()
+    }
+    
+    func endRefreshControl() {
+        rxEndRefreshControl.accept(true)
     }
     
     private func doSearch(keyword: String) {
         
         if keyword.count <= 0 {
+            let listCellViewModel = self.listNotiSearch.toCellViewModels() as [NotificationTableViewCellViewModel]
+            self.rxIsShowEmptyView.accept(listCellViewModel.isEmpty)
             self.itemsSource.reset([self.listNotiSearch.toCellViewModels()])
             return
         }
@@ -85,59 +114,15 @@ class NotificationViewModel: ListViewModel<NotificationModel, NotificationTableV
         }
         
         let listCellViewModel = newNotis.toCellViewModels() as [NotificationTableViewCellViewModel]
+        self.rxIsShowEmptyView.accept(listCellViewModel.isEmpty)
         self.itemsSource.reset([listCellViewModel])
         
     }
     
     private func prepareSources(_ response: NotificationNewResponse) -> [NotificationTableViewCellViewModel] {
         self.listNotiSearch = response.data
-        return self.listNotiSearch.toCellViewModels() as [NotificationTableViewCellViewModel]
+        let listCellViewModel = self.listNotiSearch.toCellViewModels() as [NotificationTableViewCellViewModel]
+        return listCellViewModel
     }
-    
-//    let listNotiResponse: PublishSubject<[NotificationResponse]> = PublishSubject()
-//    fileprivate var listNoti = [NotificationResponse]()
-//    
-//    func getListNotiResponse() {
-//        self.provider.getData { [weak self](success, IsFailResponseError, data) -> (Void) in
-//            guard let strongSelf = self else {
-//                return
-//            }
-//            
-//            if success && !IsFailResponseError , let data = data as? Data {
-//                do {
-//                    let jsonResponse = try JSON.init(data: data)
-//                    let arrNoti = jsonResponse["data"].arrayValue
-//                    var notis = [NotificationResponse]()
-//                    for item in arrNoti {
-//                        let noti = NotificationResponse.init(json: item)
-//                        notis.append(noti)
-//                    }
-//                    strongSelf.listNoti = notis
-//                    strongSelf.listNotiResponse.onNext(strongSelf.listNoti)
-//                } catch {
-//                    
-//                }
-//            }
-//        }
-//    }
-//    
-//    func handleSearch(textSearch: String) {
-//        if textSearch.count <= 0 {
-//            self.listNotiResponse.onNext(self.listNoti)
-//            return
-//        }
-//        let newNotis = self.listNoti.filter { (noti) -> Bool in
-//            noti.message.text.capitalized.contains(textSearch.capitalized)
-//        }
-//        self.listNotiResponse.onNext(newNotis)
-//    }
-//    
-//    func handleCancelSearch() {
-//        self.listNotiResponse.onNext(self.listNoti)
-//    }
-//    
-//    func handleReadNoti(noti: inout NotificationResponse) {
-//        noti.updateStatus(status: .read)
-//    }
     
 }
