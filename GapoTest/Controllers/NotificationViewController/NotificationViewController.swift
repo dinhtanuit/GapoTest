@@ -37,6 +37,7 @@ class NotificationViewController: ListPage<NotificationViewModel> {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
 
         // Do any additional setup after loading the view.
     }
@@ -75,12 +76,12 @@ class NotificationViewController: ListPage<NotificationViewModel> {
         viewModel.rxSearchText <~> self.tfSearch.rx.text => disposeBag
         viewModel.rxHideSearch ~> self.viewSearch.rx.isHidden => disposeBag
         
-        viewModel.rxIsShowEmptyView.subscribe(onNext: { [weak self]  isShowEmptyView in
+        viewModel.rxShowEmptyState.subscribe(onNext: { [weak self]  isShowEmptyView in
             self?.emptyView.isHidden = !isShowEmptyView
         }) => disposeBag
         
-        self.tableView.rx.endReach(30).subscribe(onNext: {
-            viewModel.loadMoreItems()
+        self.tableView.rx.endReach(30).subscribe(onNext: { [weak self] in
+            self?.viewModel?.loadMoreItems()
         }) => disposeBag
         
         viewModel.rxEndRefreshControl.skip(1).subscribe(onNext: { [weak self] isEnded in
@@ -131,7 +132,7 @@ class NotificationViewController: ListPage<NotificationViewModel> {
             guard let strongSelf = self else {
                 return
             }
-
+            
             strongSelf.viewModel?.rxHideSearch.accept(false)
             strongSelf.tfSearch.becomeFirstResponder()
 

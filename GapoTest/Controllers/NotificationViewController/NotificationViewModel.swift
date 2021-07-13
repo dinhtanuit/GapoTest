@@ -19,16 +19,10 @@ class NotificationViewModel: GPBaseListViewModel<NotificationModel, Notification
     let flickrService: NotificationService = DependencyManager.shared.getService()
     
     let rxSearchText = BehaviorRelay<String?>(value: nil)
-    let rxIsSearching = BehaviorRelay<Bool>(value: false)
     let rxHideSearch = BehaviorRelay<Bool>(value: true)
     var rxEndRefreshControl = BehaviorRelay<Bool>(value: false)
-    var rxIsShowEmptyView = BehaviorRelay<Bool>(value: false)
     
-    
-    var tmpBag: DisposeBag?
-    var finishedSearching = false
     var listNotiSearch = [NotificationModel]()
-    var resultNotiSearch = [NotificationModel]()
     
     override func react() {
         self.getListItems()
@@ -36,12 +30,7 @@ class NotificationViewModel: GPBaseListViewModel<NotificationModel, Notification
         
         rxSearchText
             .do(onNext: { text in
-                self.tmpBag = nil // stop current load more if any
-                self.finishedSearching = false // reset done state
-                
-                if !text.isNilOrEmpty {
-                    self.rxIsSearching.accept(true)
-                }
+               //
             })
             .debounce(.milliseconds(50), scheduler: Scheduler.shared.mainScheduler)
             .subscribe(onNext: { [weak self] text in
@@ -68,11 +57,12 @@ class NotificationViewModel: GPBaseListViewModel<NotificationModel, Notification
         self.flickrService.getListNotification()
             .map(prepareSources(_:))
             .subscribe { [weak self] cellViewModel in
-                self?.rxIsShowEmptyView.accept(cellViewModel.isEmpty)
+                self?.rxShowEmptyState.accept(cellViewModel.isEmpty)
                 self?.handleGetListItems(cellViewModel, nextLink: "")
                 self?.endRefreshControl()
             } onError: { error in
                 //
+                self.handleError(error: error)
             } => self.disposeBag
     }
     
@@ -88,7 +78,14 @@ class NotificationViewModel: GPBaseListViewModel<NotificationModel, Notification
                 self?.handleGetListItems(cellViewModel, nextLink: "NextLink")
             } onError: { error in
                 //
+                self.handleError(error: error)
             } => self.disposeBag
+    }
+    
+    override func handleError(error: Error) {
+        super.handleError(error: error)
+        alertService.presentOkayAlert(title: "Error", message: "Đã có lỗi xảy ra")
+
     }
     
     override func reload() {
@@ -104,7 +101,7 @@ class NotificationViewModel: GPBaseListViewModel<NotificationModel, Notification
         
         if keyword.count <= 0 {
             let listCellViewModel = self.listNotiSearch.toCellViewModels() as [NotificationTableViewCellViewModel]
-            self.rxIsShowEmptyView.accept(listCellViewModel.isEmpty)
+            self.rxShowEmptyState.accept(listCellViewModel.isEmpty)
             self.itemsSource.reset([self.listNotiSearch.toCellViewModels()])
             return
         }
@@ -114,7 +111,7 @@ class NotificationViewModel: GPBaseListViewModel<NotificationModel, Notification
         }
         
         let listCellViewModel = newNotis.toCellViewModels() as [NotificationTableViewCellViewModel]
-        self.rxIsShowEmptyView.accept(listCellViewModel.isEmpty)
+        self.rxShowEmptyState.accept(listCellViewModel.isEmpty)
         self.itemsSource.reset([listCellViewModel])
         
     }

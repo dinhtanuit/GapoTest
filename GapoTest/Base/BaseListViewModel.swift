@@ -64,7 +64,7 @@ class GPBaseListViewModel<M, CVM>: ListViewModel<M, CVM> where CVM: IGenericView
         }
     }
 
-    private func handleError(error: Error) {
+    func handleError(error: Error) {
         self.rxIsLoading.accept(false)
         // Uncomment to show error
         // Utils.showMessage(error.apiMessage)
